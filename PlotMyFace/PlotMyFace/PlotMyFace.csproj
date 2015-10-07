@@ -98,6 +98,7 @@
     </Compile>
     <Compile Include="Dithering.cs" />
     <Compile Include="Linearization.cs" />
+    <Compile Include="Location.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
@@ -105,6 +106,8 @@
       <DependentUpon>PhotoTakerPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RandomProvider.cs" />
+    <Compile Include="TravellingSalesmanAlgorithm.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
