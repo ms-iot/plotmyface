@@ -92,17 +92,17 @@ float AccelStepper::desiredSpeed()
     // Max possible speed that can still decelerate in the available distance
     float requiredSpeed;
     if (distanceTo == 0)
-	return 0.0; // Were there
+	return 0.0f; // Were there
     else if (distanceTo > 0) // Clockwise
-	requiredSpeed = sqrt(2.0 * distanceTo * _acceleration);
+	requiredSpeed = sqrtf(2.0f * distanceTo * _acceleration);
     else  // Anticlockwise
-	requiredSpeed = -sqrt(2.0 * -distanceTo * _acceleration);
+	requiredSpeed = -sqrtf(2.0f * -distanceTo * _acceleration);
 
     if (requiredSpeed > _speed)
     {
 	// Need to accelerate in clockwise direction
 	if (_speed == 0)
-	    requiredSpeed = sqrt(2.0 * _acceleration);
+	    requiredSpeed = sqrtf(2.0f * _acceleration);
 	else
 	    requiredSpeed = _speed + abs(_acceleration / _speed);
 	if (requiredSpeed > _maxSpeed)
@@ -112,7 +112,7 @@ float AccelStepper::desiredSpeed()
     {
 	// Need to accelerate in anticlockwise direction
 	if (_speed == 0)
-	    requiredSpeed = -sqrt(2.0 * _acceleration);
+	    requiredSpeed = -sqrtf(2.0f * _acceleration);
 	else
 	    requiredSpeed = _speed - abs(_acceleration / _speed);
 	if (requiredSpeed < -_maxSpeed)
@@ -161,7 +161,6 @@ AccelStepper::AccelStepper(void (*forward)(), void (*backward)())
     _speed = 0.0;
     _maxSpeed = 1.0;
     _acceleration = 1.0;
-    _stepInterval = 0;
     _lastStepTime = 0;
     _pin1 = 0;
     _pin2 = 0;
@@ -187,7 +186,7 @@ void AccelStepper::setSpeed(float speed)
 {
     _speed = speed;
     //_stepInterval = abs(1000.0 / _speed);
-    _stepInterval = abs(1000000.0 / _speed);
+    _stepInterval = (unsigned long)fabs(1000000.0 / _speed);
 }
 
 float AccelStepper::speed()
