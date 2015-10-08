@@ -8,11 +8,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="Class1.cpp" />
+    <ClCompile Include="AccelStepper.cpp" />
+    <ClCompile Include="HBot.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Class1.h" />
+    <ClInclude Include="AccelStepper.h" />
+    <ClInclude Include="HBot.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
