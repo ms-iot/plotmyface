@@ -4,8 +4,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlotMyFace", "PlotMyFace\PlotMyFace.csproj", "{35311FC9-0F9B-43FE-A96F-DDEF135B8B19}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A5CC684C-CA86-4236-A63C-AC95662E442E} = {A5CC684C-CA86-4236-A63C-AC95662E442E}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MachineInterface", "MachineInterface\MachineInterface.vcxproj", "{A5CC684C-CA86-4236-A63C-AC95662E442E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlotMyFaceTestApp", "PlotMyFaceTestApp\PlotMyFaceTestApp.csproj", "{23013A1F-B829-4743-91CB-2ADC9E45132B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A5CC684C-CA86-4236-A63C-AC95662E442E} = {A5CC684C-CA86-4236-A63C-AC95662E442E}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +55,24 @@ Global
 		{A5CC684C-CA86-4236-A63C-AC95662E442E}.Release|x64.Build.0 = Release|x64
 		{A5CC684C-CA86-4236-A63C-AC95662E442E}.Release|x86.ActiveCfg = Release|Win32
 		{A5CC684C-CA86-4236-A63C-AC95662E442E}.Release|x86.Build.0 = Release|Win32
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|ARM.ActiveCfg = Debug|ARM
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|ARM.Build.0 = Debug|ARM
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|ARM.Deploy.0 = Debug|ARM
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|x64.ActiveCfg = Debug|x64
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|x64.Build.0 = Debug|x64
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|x64.Deploy.0 = Debug|x64
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|x86.ActiveCfg = Debug|x86
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|x86.Build.0 = Debug|x86
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Debug|x86.Deploy.0 = Debug|x86
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|ARM.ActiveCfg = Release|ARM
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|ARM.Build.0 = Release|ARM
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|ARM.Deploy.0 = Release|ARM
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|x64.ActiveCfg = Release|x64
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|x64.Build.0 = Release|x64
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|x64.Deploy.0 = Release|x64
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|x86.ActiveCfg = Release|x86
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|x86.Build.0 = Release|x86
+		{23013A1F-B829-4743-91CB-2ADC9E45132B}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
