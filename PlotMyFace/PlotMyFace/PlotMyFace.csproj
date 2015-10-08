@@ -96,7 +96,6 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
-    <Compile Include="CartBot.cs" />
     <Compile Include="Dithering.cs" />
     <Compile Include="Linearization.cs" />
     <Compile Include="Location.cs" />
