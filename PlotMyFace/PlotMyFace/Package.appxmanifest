@@ -4,18 +4,19 @@
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
-  IgnorableNamespaces="uap mp">
+  xmlns:iot="http://schemas.microsoft.com/appx/manifest/iot/windows10"
+  IgnorableNamespaces="uap mp iot">
 
   <Identity
     Name="d0ef4180-4a78-4b34-a4ff-5da4a962dd88"
-    Publisher="CN=Lou"
+    Publisher="CN=Microsoft"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="d0ef4180-4a78-4b34-a4ff-5da4a962dd88" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>PlotMyFace</DisplayName>
-    <PublisherDisplayName>Lou</PublisherDisplayName>
+    <PublisherDisplayName>Microsoft</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -44,10 +45,12 @@
   </Applications>
 
   <Capabilities>
-    <Capability Name="internetClient" />
-    <uap:Capability Name="picturesLibrary" />
-    <uap:Capability Name="documentsLibrary"/>
+    <!-- iot:Capability Name="lowLevelDevices" />
+    <DeviceCapability Name="109b86ad-f53d-4b76-aa5f-821e2ddf2141"/-->
+    <!-- Capability Name="internetClient" />
     <Capability Name="internetClientServer" />
+    <uap:Capability Name="picturesLibrary" />
+    <uap:Capability Name="documentsLibrary"/-->
     <DeviceCapability Name="microphone" />
     <DeviceCapability Name="webcam" />
   </Capabilities>

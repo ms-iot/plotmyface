@@ -20,6 +20,8 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Shapes;
 using Windows.UI;
 using System.Threading.Tasks;
+using MachineInterface;
+using System.Diagnostics;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -37,6 +39,22 @@ namespace PlotMyFace
         List<Location> _locations;
         private Location[] _bestSolutionSoFar;
 
+        const int HBotPin_AStep = 24;
+        const int HBotPin_ADir = 23;
+        const int HBotPin_AEn = 16;
+
+        const int HBotPin_BStep = 13;
+        const int HBotPin_BDir = 6;
+        const int HBotPin_BEn = 5;
+
+        const int HBotPin_XHome = 19;
+        const int HBotPin_YHome = 20;
+
+        /*HBot bot = new HBot(
+            HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
+            HBotPin_BStep, HBotPin_BDir, HBotPin_BEn,
+            HBotPin_XHome, HBotPin_YHome);
+            */
         public MainPage()
         {
             this.InitializeComponent();
@@ -46,7 +64,20 @@ namespace PlotMyFace
         {
 
             base.OnNavigatedTo(e);
+            /*
+            await Task.Run(() =>
+            {
+                do
+                {
+                    Debug.WriteIf(bot.atXStop(), "At X Stop");
+                    Debug.WriteIf(bot.atYStop(), "At Y Stop");
+                }
+                while (bot.atXStop() != true &&
+                    bot.atYStop() != true);
+            });
+            */
 
+            /*
             CameraCaptureUI dialog = new CameraCaptureUI();
             Size aspectRatio = new Size(8, 10);
             dialog.PhotoSettings.CroppedAspectRatio = aspectRatio;
@@ -91,6 +122,7 @@ namespace PlotMyFace
                 _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
                 _DrawLines();
             }
+            */
         }
 
         private void _DrawLines()
