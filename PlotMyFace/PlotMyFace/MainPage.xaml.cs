@@ -1,25 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Navigation;
 using Windows.Media.Capture;
 using Windows.Storage;
-using Windows.Storage.Streams;
-using Windows.Storage.FileProperties;
-using Windows.UI.Xaml.Media.Imaging;
-using Windows.UI.Xaml.Shapes;
+using Windows.Storage.Pickers;
 using Windows.UI;
-using System.Threading.Tasks;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Media.Imaging;
+using Windows.UI.Xaml.Navigation;
+using Windows.UI.Xaml.Shapes;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -52,14 +47,30 @@ namespace PlotMyFace
             dialog.PhotoSettings.CroppedAspectRatio = aspectRatio;
             dialog.PhotoSettings.Format = CameraCaptureUIPhotoFormat.Jpeg;
 
-            StorageFile file = await dialog.CaptureFileAsync(CameraCaptureUIMode.Photo);
+            StorageFile file;
+            if (true)
+            {
+                // Use the camera image grab
+                file = await dialog.CaptureFileAsync(CameraCaptureUIMode.Photo);
+            }
+            else
+            {
+                // use a file
+                FileOpenPicker openPicker = new FileOpenPicker();
+                openPicker.ViewMode = PickerViewMode.Thumbnail;
+                openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+                openPicker.FileTypeFilter.Add(".jpg");
+                openPicker.FileTypeFilter.Add(".jpeg");
+                openPicker.FileTypeFilter.Add(".png");
+                file = await openPicker.PickSingleFileAsync();
+            }
 
             if (file == null)
             {
                 return;
             }
 
-            var ditherResult = await Dither.ditherFile(file);
+            var ditherResult = await Dither.ditherFile(file, 150, 200);
 
             _locations = Linearization.GetLocationsFromDither(ditherResult.pixels, (int)ditherResult.width, (int)ditherResult.height);
 
@@ -78,25 +89,27 @@ namespace PlotMyFace
             expand.CopyTo(bi.PixelBuffer);
             ditheredImageResult.Source = bi;
 
-            await Task.Delay(500);
+            await Task.Delay(500); // To get a paint frame
+            Debug.WriteLine("TSP Start: " + DateTime.Now.ToString());
             _algorithm = new TravellingSalesmanAlgorithm(_startLocation, _locations.ToArray(), _populationCount);
             _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
+            Debug.WriteLine("TSP End: " + DateTime.Now.ToString());
+
+            Debug.WriteLine("LineDraw Start: " + DateTime.Now.ToString());
             _DrawLines();
-            for (int gen = 0; gen < maxGenerations; gen++)
-            {
-                await Task.Delay(500);
-                _algorithm.MustMutateFailedCrossovers = true;
-                _algorithm.MustDoCrossovers = true;
-                _algorithm.Reproduce();
-                _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
-                _DrawLines();
-            }
+            Debug.WriteLine("LineDraw End: " + DateTime.Now.ToString());
+        }
+
+        uint LineLength(Line line)
+        {
+            double xSeg = (line.X2 - line.X1);
+            double ySeg = (line.Y2 - line.Y1);
+            return (uint)Math.Abs((Math.Sqrt(xSeg * xSeg + ySeg * ySeg)));
         }
 
         private void _DrawLines()
         {
             Location[] bestSolutionSoFar = _bestSolutionSoFar;
-            //labelDistance.Content = (long)
             Location.GetTotalDistance(_startLocation, bestSolutionSoFar);
 
             var canvasChildren = lineResult.Children;
@@ -106,6 +119,7 @@ namespace PlotMyFace
             int index = 0;
             var color = Colors.Purple;
             var stroke = new SolidColorBrush(color);
+            int dropCount = 0;
             foreach (var destination in _AddEndLocation(bestSolutionSoFar))
             {
                 int red = 255 * index / bestSolutionSoFar.Length;
@@ -117,25 +131,23 @@ namespace PlotMyFace
                 line.Y1 = actualLocation.Y;
                 line.X2 = destination.X;
                 line.Y2 = destination.Y;
-                canvasChildren.Add(line);
-
-/*                var circle = new Ellipse();
-                circle.Stroke = new SolidColorBrush(Colors.Black);
-
-                if (destination == _startLocation)
-                    circle.Fill = new SolidColorBrush(Colors.Red);
+                uint lineLength = LineLength(line);
+                if (lineLength > 10)
+                {
+                    Debug.WriteLine("Dropping line length: " + lineLength);
+                    dropCount++;
+                }
                 else
-                    circle.Fill = new SolidColorBrush(Colors.Yellow);
+                {
+                    canvasChildren.Add(line);
+                }
 
-                circle.Width = 11;
-                circle.Height = 11;
-                Canvas.SetLeft(circle, destination.X - 5);
-                Canvas.SetTop(circle, destination.Y - 5);
-                canvasChildren.Add(circle);
-                */
                 actualLocation = destination;
                 index++;
             }
+
+            Debug.WriteLine("Total dropped: " + dropCount);
+
         }
         private IEnumerable<Location> _AddEndLocation(Location[] middleLocations)
         {

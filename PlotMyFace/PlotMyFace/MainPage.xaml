@@ -8,8 +8,10 @@
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <Image x:Name="ditheredImageResult" HorizontalAlignment="Left" Height="702" Margin="803,117,0,0" VerticalAlignment="Top" Width="569" Stretch="None"/>
-        <Canvas  x:Name="lineResult" HorizontalAlignment="Left" Height="702" Margin="63,117,0,0" VerticalAlignment="Top" Width="569"/>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" >
+            <Image x:Name="ditheredImageResult" Width="150" Height="200"/>
+            <Canvas  x:Name="lineResult" Margin="0,50" Width="150" Height="200"/>
+        </StackPanel>
 
     </Grid>
 </Page>
