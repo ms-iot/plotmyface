@@ -29,6 +29,8 @@ namespace MachineInterface
 		pinMode(_xHome, INPUT_PULLUP);
 		pinMode(_yHome, INPUT_PULLUP);
 
+		disable();
+
 		setMaxValues();
 	}
 
@@ -56,20 +58,40 @@ namespace MachineInterface
 
 	void HBot::setMaxValues()
 	{
-		_aStepper.setAcceleration(1000);
-		_bStepper.setAcceleration(1000);
-		_aStepper.setMaxSpeed(3000);
-		_bStepper.setMaxSpeed(3000);
+		_aStepper.setAcceleration(30000);
+		_bStepper.setAcceleration(30000);
+		_aStepper.setMaxSpeed(50000);
+		_bStepper.setMaxSpeed(50000);
 	}
 
 	void HBot::home()
 	{
-		_aStepper.setAcceleration(800);
-		_bStepper.setAcceleration(800);
-		_aStepper.setMaxSpeed(1000);
-		_bStepper.setMaxSpeed(1000);
-		moveRelative(-_widthMM, 0);
-		_state = BotState_HomingX;
+		if (digitalRead(_xHome) == 0 &&
+			digitalRead(_yHome) == 0)
+		{
+			// Home already
+			_aStepper.setCurrentPosition(0);
+			_bStepper.setCurrentPosition(0);
+			_state = BotState_Idle;
+		}
+		else
+		{
+
+			_aStepper.setAcceleration(500);
+			_bStepper.setAcceleration(500);
+			_aStepper.setMaxSpeed(800);
+			_bStepper.setMaxSpeed(800);
+			if (digitalRead(_xHome) == 1)
+			{
+				moveRelative(-_widthMM, 0);
+				_state = BotState_HomingX;
+			}
+			else
+			{
+				moveRelative(0, -_heightMM);
+				_state = BotState_HomingY;
+			}
+		}
 	}
 
 	void HBot::step(int64 stepA, int64 stepB)
@@ -119,10 +141,11 @@ namespace MachineInterface
 				if (digitalRead(_yHome) == 0)
 				{
 					_state = BotState_Idle;
+					setMaxValues();
 					_aStepper.setCurrentPosition(0);
 					_bStepper.setCurrentPosition(0);
-					_aStepper.moveTo(0);
-					_bStepper.moveTo(0);
+					//_aStepper.moveTo(0);
+					//_bStepper.moveTo(0);
 				}
 			}
 
