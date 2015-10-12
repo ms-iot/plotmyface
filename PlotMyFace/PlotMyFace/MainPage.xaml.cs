@@ -16,6 +16,7 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using Windows.UI.Xaml.Shapes;
 using MachineInterface;
+using Windows.Media.MediaProperties;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -33,22 +34,32 @@ namespace PlotMyFace
         List<Location> _locations;
         private Location[] _bestSolutionSoFar;
 
-        const int HBotPin_AStep = 24;
-        const int HBotPin_ADir = 23;
-        const int HBotPin_AEn = 16;
+        private readonly String PHOTO_FILE_NAME = "Capture.jpg";
 
-        const int HBotPin_BStep = 13;
-        const int HBotPin_BDir = 6;
-        const int HBotPin_BEn = 5;
+        const int HBotPin_AStep = 16;    // GPIO_23;
+        const int HBotPin_ADir = 12;     // GPIO_18;
+        const int HBotPin_AEn = 18;   // GPIO_24;
 
-        const int HBotPin_XHome = 19;
-        const int HBotPin_YHome = 20;
+        const int HBotPin_BStep = 31;    // GPIO_6;
+        const int HBotPin_BDir = 33;   // GPIO_13;
+        const int HBotPin_BEn = 29;     //GPIO_5;
 
-        /*HBot bot = new HBot(
-            HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
-            HBotPin_BStep, HBotPin_BDir, HBotPin_BEn,
-            HBotPin_XHome, HBotPin_YHome);
-            */
+        const int HBotPin_XHome = 38;   //GPIO_19;
+        const int HBotPin_YHome = 35;   //GPIO_20;
+
+        const int HBotBed_Width = 350; // mm
+        const int HBotBed_Height = 350; // mm
+
+        const int HBotBed_SpindleDiameter = 13; // mm Spindle Diameter
+        const int HBotBed_StepsPerRev = 200 * 16; // full steps per rev, 16 microsteps
+        const int HBotBed_StepsPerMM = (int)(HBotBed_StepsPerRev / (Math.PI * HBotBed_SpindleDiameter));  // Steps per MM
+
+        HBot bot = null;
+
+        private DispatcherTimer timer;
+        public MediaCapture _mediaCaptureMgr;
+        private StorageFile _photoStorageFile;
+
         public MainPage()
         {
             this.InitializeComponent();
@@ -58,32 +69,39 @@ namespace PlotMyFace
         {
 
             base.OnNavigatedTo(e);
-            /*
-            await Task.Run(() =>
-            {
-                do
-                {
-                    Debug.WriteIf(bot.atXStop(), "At X Stop");
-                    Debug.WriteIf(bot.atYStop(), "At Y Stop");
-                }
-                while (bot.atXStop() != true &&
-                    bot.atYStop() != true);
-            });
-            */
 
-            /*
-            CameraCaptureUI dialog = new CameraCaptureUI();
-            Size aspectRatio = new Size(8, 10);
-            dialog.PhotoSettings.CroppedAspectRatio = aspectRatio;
-            dialog.PhotoSettings.Format = CameraCaptureUIPhotoFormat.Jpeg;
+            _mediaCaptureMgr = new Windows.Media.Capture.MediaCapture();
+            await _mediaCaptureMgr.InitializeAsync(new MediaCaptureInitializationSettings { StreamingCaptureMode = StreamingCaptureMode.Video });
 
-            StorageFile file;
-            if (true)
+            if (_mediaCaptureMgr.MediaCaptureSettings.VideoDeviceId != "" && _mediaCaptureMgr.MediaCaptureSettings.AudioDeviceId != "")
             {
-                // Use the camera image grab
-                file = await dialog.CaptureFileAsync(CameraCaptureUIMode.Photo);
+                _mediaCaptureMgr.Failed += new Windows.Media.Capture.MediaCaptureFailedEventHandler(CameraFailedHandler);
             }
             else
+            {
+                Debug.WriteLine("No VideoDevice/AudioDevice Found");
+            }
+
+            VideoEncodingProperties smallestMedia = null;
+
+            var cameraProperties = _mediaCaptureMgr.VideoDeviceController.GetAvailableMediaStreamProperties(MediaStreamType.VideoPreview).Select(x => x as VideoEncodingProperties).ToList();
+            if (cameraProperties.Count >= 1)
+            {
+                foreach (var mediaEncodingProperty in cameraProperties)
+                {
+                    if (smallestMedia == null ||
+                        (smallestMedia.Width > mediaEncodingProperty.Width ||
+                        smallestMedia.Height > mediaEncodingProperty.Height))
+                    {
+                        smallestMedia = mediaEncodingProperty;
+                    }
+                }
+            }
+
+            await _mediaCaptureMgr.VideoDeviceController.SetMediaStreamPropertiesAsync(MediaStreamType.VideoPreview, smallestMedia);
+
+            // for testing
+            if (false)
             {
                 // use a file
                 FileOpenPicker openPicker = new FileOpenPicker();
@@ -92,35 +110,52 @@ namespace PlotMyFace
                 openPicker.FileTypeFilter.Add(".jpg");
                 openPicker.FileTypeFilter.Add(".jpeg");
                 openPicker.FileTypeFilter.Add(".png");
-                file = await openPicker.PickSingleFileAsync();
+                _photoStorageFile = await openPicker.PickSingleFileAsync();
             }
 
-            if (file == null)
+            CapturePreview.Source = _mediaCaptureMgr;
+            await _mediaCaptureMgr.StartPreviewAsync();
+
+            await Task.Run(() =>
             {
-                return;
-            }
+                bot = new HBot(
+                    HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
+                    HBotPin_BStep, HBotPin_BDir, HBotPin_BEn,
+                    HBotPin_XHome, HBotPin_YHome);
+                bot.setInfo(HBotBed_Width, HBotBed_Height, HBotBed_StepsPerMM);
 
-            var ditherResult = await Dither.ditherFile(file, 150, 200);
+                bot.enable();
+                //bot.move(50, 0);
+                //bot.step(3200, 3200);
+                bot.home();
+                while (bot.run())
+                    ;
+                bot.disable();
+            });
+        }
 
-            _locations = Linearization.GetLocationsFromDither(ditherResult.pixels, (int)ditherResult.width, (int)ditherResult.height);
-
-            MemoryStream ms = new MemoryStream(ditherResult.pixels);
-
-            var expand = new byte[ditherResult.width * ditherResult.height * 4];
-            for (int i = 0; i < ditherResult.pixels.Length; i++)
+        public async void CameraFailedHandler(MediaCapture currentCaptureObject, MediaCaptureFailedEventArgs currentFailure)
+        {
+            try
             {
-                expand[i * 4 + 0] = ditherResult.pixels[i];
-                expand[i * 4 + 1] = ditherResult.pixels[i];
-                expand[i * 4 + 2] = ditherResult.pixels[i];
-                expand[i * 4 + 3] = 255;
+                // Notify the user
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                {
+                    Debug.WriteLine("Fatal error" + currentFailure.Message);
+                });
             }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.Message);
+            }
+        }
 
-            WriteableBitmap bi = new WriteableBitmap((int)ditherResult.width, (int)ditherResult.height);
-            expand.CopyTo(bi.PixelBuffer);
-            ditheredImageResult.Source = bi;
 
-            await Task.Delay(500); // To get a paint frame
-            Debug.WriteLine("TSP Start: " + DateTime.Now.ToString());
+        private async void Timer_Tick(object sender, object e)
+        {
+            //_photoStorageFile = await Windows.Storage.KnownFolders.AppCaptures.CreateFileAsync(PHOTO_FILE_NAME, Windows.Storage.CreationCollisionOption.GenerateUniqueName);
+            /*
+            await Task.Delay(500);
             _algorithm = new TravellingSalesmanAlgorithm(_startLocation, _locations.ToArray(), _populationCount);
             _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
             Debug.WriteLine("TSP End: " + DateTime.Now.ToString());
@@ -205,7 +240,34 @@ namespace PlotMyFace
 
         private void Stop_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
+        }
 
+        private async void button_Click(object sender, RoutedEventArgs e)
+        {
+            _photoStorageFile = await Windows.Storage.ApplicationData.Current.LocalFolder.CreateFileAsync(PHOTO_FILE_NAME, Windows.Storage.CreationCollisionOption.GenerateUniqueName);
+
+            ImageEncodingProperties imageProperties = ImageEncodingProperties.CreateJpeg();
+
+            await _mediaCaptureMgr.CapturePhotoToStorageFileAsync(imageProperties, _photoStorageFile);
+
+            var ditherResult = await Dither.ditherFile(_photoStorageFile);
+
+            _locations = Linearization.GetLocationsFromDither(ditherResult.pixels, (int)ditherResult.width, (int)ditherResult.height);
+
+            MemoryStream ms = new MemoryStream(ditherResult.pixels);
+
+            var expand = new byte[ditherResult.width * ditherResult.height * 4];
+            for (int i = 0; i < ditherResult.pixels.Length; i++)
+            {
+                expand[i * 4 + 0] = ditherResult.pixels[i];
+                expand[i * 4 + 1] = ditherResult.pixels[i];
+                expand[i * 4 + 2] = ditherResult.pixels[i];
+                expand[i * 4 + 3] = 255;
+            }
+
+            WriteableBitmap bi = new WriteableBitmap((int)ditherResult.width, (int)ditherResult.height);
+            expand.CopyTo(bi.PixelBuffer);
+            ditheredImageResult.Source = bi;
         }
     }
 }
