@@ -16,8 +16,8 @@
                 <Button x:Name="Stop" Content="Stop" Margin="30, 0, 0, 0" Height="76" Width="144" Click="Stop_Click"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,80,0,0" HorizontalAlignment="Center">
-                <Image x:Name="ditheredImageResult" Width="150" Height="200"/>
-                <Canvas x:Name="lineResult" Margin="50,0,0,0" Width="150" Height="200"/>
+                <Image x:Name="ditheredImageResult" Width="300" Height="200" Stretch="None"/>
+                <Canvas x:Name="lineResult" Margin="50,0,0,0" Width="300" Height="200"/>
             </StackPanel>
         </StackPanel>
     </Grid>

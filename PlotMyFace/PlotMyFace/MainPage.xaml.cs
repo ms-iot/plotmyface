@@ -17,6 +17,7 @@ using Windows.UI.Xaml.Navigation;
 using Windows.UI.Xaml.Shapes;
 using MachineInterface;
 using Windows.Media.MediaProperties;
+using Windows.UI.Xaml;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -27,6 +28,7 @@ namespace PlotMyFace
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        private const int generationTimeout = 500; // ms
         private const int maxGenerations = 100;
         private const int _populationCount = 114;
         Location _startLocation = new Location(50, 50);
@@ -54,11 +56,12 @@ namespace PlotMyFace
         const int HBotBed_StepsPerRev = 200 * 16; // full steps per rev, 16 microsteps
         const int HBotBed_StepsPerMM = (int)(HBotBed_StepsPerRev / (Math.PI * HBotBed_SpindleDiameter));  // Steps per MM
 
-        HBot bot = null;
+        private HBot _bot = null;
 
-        private DispatcherTimer timer;
-        public MediaCapture _mediaCaptureMgr;
+        private DispatcherTimer _timer = null;
+        private MediaCapture _mediaCaptureMgr;
         private StorageFile _photoStorageFile;
+        private int _currentGeneration = 0;
 
         public MainPage()
         {
@@ -69,6 +72,11 @@ namespace PlotMyFace
         {
 
             base.OnNavigatedTo(e);
+
+            draw.IsEnabled = false;
+            _timer = new DispatcherTimer();
+            _timer.Interval = TimeSpan.FromMilliseconds(generationTimeout);
+            _timer.Tick += _timer_Tick;
 
             _mediaCaptureMgr = new Windows.Media.Capture.MediaCapture();
             await _mediaCaptureMgr.InitializeAsync(new MediaCaptureInitializationSettings { StreamingCaptureMode = StreamingCaptureMode.Video });
@@ -101,6 +109,7 @@ namespace PlotMyFace
             await _mediaCaptureMgr.VideoDeviceController.SetMediaStreamPropertiesAsync(MediaStreamType.VideoPreview, smallestMedia);
 
             // for testing
+            /*
             if (false)
             {
                 // use a file
@@ -112,25 +121,24 @@ namespace PlotMyFace
                 openPicker.FileTypeFilter.Add(".png");
                 _photoStorageFile = await openPicker.PickSingleFileAsync();
             }
+            */
 
             CapturePreview.Source = _mediaCaptureMgr;
             await _mediaCaptureMgr.StartPreviewAsync();
 
             await Task.Run(() =>
             {
-                bot = new HBot(
+                _bot = new HBot(
                     HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
                     HBotPin_BStep, HBotPin_BDir, HBotPin_BEn,
                     HBotPin_XHome, HBotPin_YHome);
-                bot.setInfo(HBotBed_Width, HBotBed_Height, HBotBed_StepsPerMM);
+                _bot.setInfo(HBotBed_Width, HBotBed_Height, HBotBed_StepsPerMM);
 
-                bot.enable();
-                //bot.move(50, 0);
-                //bot.step(3200, 3200);
-                bot.home();
-                while (bot.run())
+                _bot.enable();
+                _bot.home();
+                while (_bot.run())
                     ;
-                bot.disable();
+                _bot.disable();
             });
         }
 
@@ -148,32 +156,6 @@ namespace PlotMyFace
             {
                 Debug.WriteLine(e.Message);
             }
-        }
-
-
-        private async void Timer_Tick(object sender, object e)
-        {
-            //_photoStorageFile = await Windows.Storage.KnownFolders.AppCaptures.CreateFileAsync(PHOTO_FILE_NAME, Windows.Storage.CreationCollisionOption.GenerateUniqueName);
-            /*
-            await Task.Delay(500);
-            _algorithm = new TravellingSalesmanAlgorithm(_startLocation, _locations.ToArray(), _populationCount);
-            _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
-            Debug.WriteLine("TSP End: " + DateTime.Now.ToString());
-
-            Debug.WriteLine("LineDraw Start: " + DateTime.Now.ToString());
-            _DrawLines();
-            Debug.WriteLine("LineDraw End: " + DateTime.Now.ToString());
-
-            for (int gen = 0; gen < maxGenerations; gen++)
-            {
-                await Task.Delay(500);
-                _algorithm.MustMutateFailedCrossovers = true;
-                _algorithm.MustDoCrossovers = true;
-                _algorithm.Reproduce();
-                _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
-                _DrawLines();
-            }
-            */
         }
 
         uint LineLength(Line line)
@@ -228,7 +210,6 @@ namespace PlotMyFace
 
             Debug.WriteLine("Total long dropped: " + dropCount);
             Debug.WriteLine("Segments added: " + canvasChildren.Count);
-
         }
         private IEnumerable<Location> _AddEndLocation(Location[] middleLocations)
         {
@@ -238,9 +219,28 @@ namespace PlotMyFace
             yield return _startLocation;
         }
 
-        private void draw_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private async void draw_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
+            await Task.Run(() =>
+            {
+                Location[] bestSolutionSoFar = _bestSolutionSoFar;
+                Location.GetTotalDistance(_startLocation, bestSolutionSoFar);
 
+                var actualLocation = _startLocation;
+                int index = 0;
+                foreach (var destination in _AddEndLocation(bestSolutionSoFar))
+                {
+                    _bot.move(destination.X + 20, destination.Y + 20);
+
+                    _bot.enable();
+                    while (_bot.run())
+                        ;
+                    _bot.disable();
+
+                    actualLocation = destination;
+                    index++;
+                }
+            });
         }
 
         private void Stop_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
@@ -249,30 +249,77 @@ namespace PlotMyFace
 
         private async void button_Click(object sender, RoutedEventArgs e)
         {
+            _timer.Stop();
+
             _photoStorageFile = await Windows.Storage.ApplicationData.Current.LocalFolder.CreateFileAsync(PHOTO_FILE_NAME, Windows.Storage.CreationCollisionOption.GenerateUniqueName);
 
             ImageEncodingProperties imageProperties = ImageEncodingProperties.CreateJpeg();
 
             await _mediaCaptureMgr.CapturePhotoToStorageFileAsync(imageProperties, _photoStorageFile);
 
-            var ditherResult = await Dither.ditherFile(_photoStorageFile);
-
-            _locations = Linearization.GetLocationsFromDither(ditherResult.pixels, (int)ditherResult.width, (int)ditherResult.height);
-
-            MemoryStream ms = new MemoryStream(ditherResult.pixels);
-
-            var expand = new byte[ditherResult.width * ditherResult.height * 4];
-            for (int i = 0; i < ditherResult.pixels.Length; i++)
+            await Task.Run(async () =>
             {
-                expand[i * 4 + 0] = ditherResult.pixels[i];
-                expand[i * 4 + 1] = ditherResult.pixels[i];
-                expand[i * 4 + 2] = ditherResult.pixels[i];
-                expand[i * 4 + 3] = 255;
-            }
+                var ditherResult = await Dither.ditherFile(_photoStorageFile);
 
-            WriteableBitmap bi = new WriteableBitmap((int)ditherResult.width, (int)ditherResult.height);
-            expand.CopyTo(bi.PixelBuffer);
-            ditheredImageResult.Source = bi;
+                _locations = Linearization.GetLocationsFromDither(ditherResult.pixels, (int)ditherResult.width, (int)ditherResult.height);
+
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                {
+                    MemoryStream ms = new MemoryStream(ditherResult.pixels);
+
+                    var expand = new byte[ditherResult.width * ditherResult.height * 4];
+                    for (int i = 0; i < ditherResult.pixels.Length; i++)
+                    {
+                        expand[i * 4 + 0] = ditherResult.pixels[i];
+                        expand[i * 4 + 1] = ditherResult.pixels[i];
+                        expand[i * 4 + 2] = ditherResult.pixels[i];
+                        expand[i * 4 + 3] = 255;
+                    }
+
+                    WriteableBitmap bi = new WriteableBitmap((int)ditherResult.width, (int)ditherResult.height);
+                    expand.CopyTo(bi.PixelBuffer);
+                    ditheredImageResult.Source = bi;
+                });
+
+                var start = DateTime.Now;
+
+                _algorithm = new TravellingSalesmanAlgorithm(_startLocation, _locations.ToArray(), _populationCount);
+                _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
+                Debug.WriteLine("TSP took: " + (DateTime.Now - start).TotalSeconds.ToString() + " seconds");
+
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                {
+                    draw.IsEnabled = true;
+                });
+
+                /*
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                {
+                    var startLines = DateTime.Now;
+                    _DrawLines();
+                    Debug.WriteLine("LineDraw " + (DateTime.Now - startLines).TotalSeconds.ToString() + " seconds");
+                });
+                */
+            });
+
+            //_currentGeneration = 0;
+            //_timer.Start();
+        }
+
+        private void _timer_Tick(object sender, object e)
+        {
+            if (_currentGeneration++ > maxGenerations)
+            {
+                _timer.Stop();
+            }
+            else if (_algorithm != null)
+            {
+                _algorithm.MustMutateFailedCrossovers = true;
+                _algorithm.MustDoCrossovers = true;
+                _algorithm.Reproduce();
+                _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
+                _DrawLines();
+            }
         }
     }
 }
