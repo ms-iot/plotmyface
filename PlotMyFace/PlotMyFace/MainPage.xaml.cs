@@ -229,13 +229,15 @@ namespace PlotMyFace
 
         private async void draw_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
-            await Task.Run(() =>
+            draw.IsEnabled = false;
+            await Task.Run(async () =>
             {
                 Location[] bestSolutionSoFar = _bestSolutionSoFar;
                 Location.GetTotalDistance(_startLocation, bestSolutionSoFar);
 
                 var actualLocation = _startLocation;
                 int index = 0;
+                var start = DateTime.Now;
                 foreach (var destination in _AddEndLocation(bestSolutionSoFar))
                 {
                     _bot.move(destination.X + 20, destination.Y + 20);
@@ -248,6 +250,13 @@ namespace PlotMyFace
                     actualLocation = destination;
                     index++;
                 }
+
+                Debug.WriteLine("Render took: " + (DateTime.Now - start).TotalSeconds.ToString() + " seconds");
+
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                {
+                    draw.IsEnabled = true;
+                });
             });
         }
 
