@@ -15,6 +15,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using Windows.UI.Xaml.Shapes;
+using MachineInterface;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -32,6 +33,22 @@ namespace PlotMyFace
         List<Location> _locations;
         private Location[] _bestSolutionSoFar;
 
+        const int HBotPin_AStep = 24;
+        const int HBotPin_ADir = 23;
+        const int HBotPin_AEn = 16;
+
+        const int HBotPin_BStep = 13;
+        const int HBotPin_BDir = 6;
+        const int HBotPin_BEn = 5;
+
+        const int HBotPin_XHome = 19;
+        const int HBotPin_YHome = 20;
+
+        /*HBot bot = new HBot(
+            HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
+            HBotPin_BStep, HBotPin_BDir, HBotPin_BEn,
+            HBotPin_XHome, HBotPin_YHome);
+            */
         public MainPage()
         {
             this.InitializeComponent();
@@ -41,7 +58,20 @@ namespace PlotMyFace
         {
 
             base.OnNavigatedTo(e);
+            /*
+            await Task.Run(() =>
+            {
+                do
+                {
+                    Debug.WriteIf(bot.atXStop(), "At X Stop");
+                    Debug.WriteIf(bot.atYStop(), "At Y Stop");
+                }
+                while (bot.atXStop() != true &&
+                    bot.atYStop() != true);
+            });
+            */
 
+            /*
             CameraCaptureUI dialog = new CameraCaptureUI();
             Size aspectRatio = new Size(8, 10);
             dialog.PhotoSettings.CroppedAspectRatio = aspectRatio;
@@ -98,6 +128,17 @@ namespace PlotMyFace
             Debug.WriteLine("LineDraw Start: " + DateTime.Now.ToString());
             _DrawLines();
             Debug.WriteLine("LineDraw End: " + DateTime.Now.ToString());
+
+            for (int gen = 0; gen < maxGenerations; gen++)
+            {
+                await Task.Delay(500);
+                _algorithm.MustMutateFailedCrossovers = true;
+                _algorithm.MustDoCrossovers = true;
+                _algorithm.Reproduce();
+                _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
+                _DrawLines();
+            }
+            */
         }
 
         uint LineLength(Line line)
@@ -169,6 +210,16 @@ namespace PlotMyFace
                 yield return location;
 
             yield return _startLocation;
+        }
+
+        private void draw_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+
+        }
+
+        private void Stop_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+
         }
     }
 }
