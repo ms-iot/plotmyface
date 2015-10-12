@@ -7,8 +7,8 @@ namespace MachineInterface
 		int aStepPin, int aDirPin, int aEnPin,
 		int bStepPin, int bDirPin, int bEnPin,
 		int xHome, int yHome)
-		: _aStepper(2, aStepPin, aDirPin)
-		, _bStepper(2, bStepPin, bDirPin)
+		: _aStepper(1, aStepPin, aDirPin)
+		, _bStepper(1, bStepPin, bDirPin)
 		, _state(BotState_Idle)
 	{
 		_aStepPin = aStepPin;
@@ -33,46 +33,72 @@ namespace MachineInterface
 	}
 
 	void HBot::setInfo(
-		uint32 widthMM, uint32 heightMM,
-		uint32 stepsPerMM)
+		int widthMM, int heightMM,
+		int stepsPerMM)
 	{
 		_widthMM = widthMM;
 		_heightMM = heightMM;
 		_stepsPerMM = stepsPerMM;
 	}
 
+	void HBot::enable()
+	{
+		digitalWrite(_aEnPin, 0);
+		digitalWrite(_bEnPin, 0);
+	}
+
+	void HBot::disable()
+	{
+		digitalWrite(_aEnPin, 1);
+		digitalWrite(_bEnPin, 1);
+	}
+
+
 	void HBot::setMaxValues()
 	{
-		_aStepper.setAcceleration(100);
-		_bStepper.setAcceleration(100);
-		_aStepper.setMaxSpeed(400);
-		_bStepper.setMaxSpeed(400);
+		_aStepper.setAcceleration(1000);
+		_bStepper.setAcceleration(1000);
+		_aStepper.setMaxSpeed(3000);
+		_bStepper.setMaxSpeed(3000);
 	}
 
 	void HBot::home()
 	{
-		_aStepper.setAcceleration(50);
-		_bStepper.setAcceleration(50);
-		_aStepper.setMaxSpeed(100);
-		_bStepper.setMaxSpeed(100);
-		_state = BotState_Homing;
-		moveRelative(_widthMM, _heightMM);
+		_aStepper.setAcceleration(800);
+		_bStepper.setAcceleration(800);
+		_aStepper.setMaxSpeed(1000);
+		_bStepper.setMaxSpeed(1000);
+		moveRelative(-_widthMM, 0);
+		_state = BotState_HomingX;
 	}
 
-	void HBot::move(uint32 xMM, uint32 yMM)
+	void HBot::step(int64 stepA, int64 stepB)
 	{
-		long aSteps = (xMM + yMM) * _stepsPerMM;
-		long bSteps = (xMM - yMM) * _stepsPerMM;
+		_aStepper.moveTo((long)stepA);
+		_bStepper.moveTo((long)stepB);
+
+		_state = BotState_Moving;
+	}
+
+
+	void HBot::move(int xMM, int yMM)
+	{
+		long aSteps = (yMM + xMM) * _stepsPerMM;
+		long bSteps = (yMM - xMM) * _stepsPerMM;
 		_aStepper.moveTo(aSteps);
 		_bStepper.moveTo(bSteps);
+
+		_state = BotState_Moving;
 	}
 
-	void HBot::moveRelative(uint32 xMM, uint32 yMM)
+	void HBot::moveRelative(int xMM, int yMM)
 	{
-		long aSteps = (xMM + yMM) * _stepsPerMM;
-		long bSteps = (xMM - yMM) * _stepsPerMM;
+		long aSteps = (yMM + xMM) * _stepsPerMM;
+		long bSteps = (yMM - xMM) * _stepsPerMM;
 		_aStepper.move(aSteps);
 		_bStepper.move(bSteps);
+
+		_state = BotState_Moving;
 	}
 
 	bool HBot::run()
@@ -80,27 +106,37 @@ namespace MachineInterface
 		bool running = false;
 		if (_state != BotState_Idle)
 		{
-			if (_state == BotState_Homing)
+			if (_state == BotState_HomingX)
 			{
-				if (digitalRead(_xHome) == 1 &&
-					digitalRead(_yHome) == 1)
+				if (digitalRead(_xHome) == 0)
 				{
-					_state = BotState_Idle;
-					setMaxValues();
-				}
-				else
-				{
-					moveRelative((digitalRead(_xHome) == 1) ? 0 : _widthMM,
-						(digitalRead(_yHome) == 1) ? 0 : _heightMM);
+					moveRelative(0, -_heightMM);
+					_state = BotState_HomingY;
 				}
 			}
-			running = true;
+			else if (_state == BotState_HomingY)
+			{
+				if (digitalRead(_yHome) == 0)
+				{
+					_state = BotState_Idle;
+					_aStepper.setCurrentPosition(0);
+					_bStepper.setCurrentPosition(0);
+					_aStepper.moveTo(0);
+					_bStepper.moveTo(0);
+				}
+			}
 
-			if (_aStepper.run() == false &&
-				_bStepper.run() == false)
+			bool aFinished = _aStepper.run() == false;
+			bool bFinished = _bStepper.run() == false;
+
+			if (aFinished && bFinished)
 			{
 				_state = BotState_Idle;
 				running = false;
+			}
+			else
+			{
+				running = true;
 			}
 		}
 

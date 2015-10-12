@@ -8,7 +8,8 @@ namespace MachineInterface
 		typedef enum
 		{
 			BotState_Idle = 0,
-			BotState_Homing,
+			BotState_HomingX,
+			BotState_HomingY,
 			BotState_Moving
 		} BotState;
 		int _aStepPin;
@@ -20,9 +21,9 @@ namespace MachineInterface
 		int _xHome;
 		int _yHome;
 
-		uint32 _widthMM;
-		uint32 _heightMM;
-		uint32 _stepsPerMM;
+		int _widthMM;
+		int _heightMM;
+		int _stepsPerMM;
 
 		BotState _state;
 
@@ -34,21 +35,25 @@ namespace MachineInterface
 			int bStepPin, int bDirPin, int bEnPin,
 			int xHome, int yHome);
 		void home();
-		void move(uint32 xMM, uint32 yMM);
-		void moveRelative(uint32 xMM, uint32 yMM);
+		void step(int64 stepA, int64 stepB);
+		void move(int xMM, int yMM);
+		void moveRelative(int xMM, int yMM);
 		void setInfo(
-			uint32 widthMM, uint32 heightMM,
-			uint32 stepsPerMM);
+			int widthMM, int heightMM,
+			int stepsPerMM);
 		bool run();
+
+		void enable();
+		void disable();
 
 		bool atXStop()
 		{
-			return digitalRead(_xHome) == 1;
+			return digitalRead(_xHome) == 0;
 		}
 
 		bool atYStop()
 		{
-			return digitalRead(_yHome) == 1;
+			return digitalRead(_yHome) == 0;
 		}
 
 		bool isRunning()
