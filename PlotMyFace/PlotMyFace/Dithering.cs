@@ -28,7 +28,7 @@ namespace PlotMyFace
         enum dithermode { Sierra2, SierraLite, FloydSteinberg};
 
 
-        internal static async Task<DitherResult> ditherFile(StorageFile file, uint outputWidth = 150, uint outputHeight = 200)
+        internal static async Task<DitherResult> ditherFile(StorageFile file, uint outputWidth, uint outputHeight)
         {
             int pointCount = 0;
             dithermode dm = dithermode.SierraLite;

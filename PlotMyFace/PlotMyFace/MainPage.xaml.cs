@@ -262,12 +262,14 @@ namespace PlotMyFace
             _photoStorageFile = await Windows.Storage.ApplicationData.Current.LocalFolder.CreateFileAsync(PHOTO_FILE_NAME, Windows.Storage.CreationCollisionOption.GenerateUniqueName);
 
             ImageEncodingProperties imageProperties = ImageEncodingProperties.CreateJpeg();
+            imageProperties.Height = 150;
+            imageProperties.Width = 150;
 
             await _mediaCaptureMgr.CapturePhotoToStorageFileAsync(imageProperties, _photoStorageFile);
 
             await Task.Run(async () =>
             {
-                var ditherResult = await Dither.ditherFile(_photoStorageFile);
+                var ditherResult = await Dither.ditherFile(_photoStorageFile, imageProperties.Width, imageProperties.Height);
 
                 _locations = Linearization.GetLocationsFromDither(ditherResult.pixels, (int)ditherResult.width, (int)ditherResult.height);
 
