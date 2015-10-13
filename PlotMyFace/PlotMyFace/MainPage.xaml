@@ -5,21 +5,38 @@
     xmlns:local="using:PlotMyFace"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    d:DesignWidth="1920"
+    d:DesignHeight="1280">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <StackPanel VerticalAlignment="Top" Margin="50,50,50,0">
-            <TextBlock x:Name="TSPTitle" TextWrapping="Wrap" Text="Traveling Salesperson Art"/>
+            <TextBlock x:Name="TSPTitle" TextWrapping="Wrap" Text="Traveling Salesperson Art" FontSize="50" HorizontalAlignment="Center"/>
             <StackPanel  Orientation="Horizontal" HorizontalAlignment="Center">
                 <CaptureElement x:Name="CapturePreview" Width="300" Height="276"/>
                 <Button x:Name="button" Content="Capture" Margin="30, 0, 0, 0" Height="76" Width="144" Click="button_Click"/>
                 <Button x:Name="draw" Content="Draw" Margin="30, 0, 0, 0" Height="76" Width="144" Click="draw_Click"/>
                 <!-- Button x:Name="Stop" Content="Stop" Margin="30, 0, 0, 0" Height="76" Width="144" Click="Stop_Click"/ -->
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,80,0,0" HorizontalAlignment="Center">
-                <Image x:Name="ditheredImageResult" Width="300" Height="200" Stretch="None"/>
-                <Canvas x:Name="lineResult" Margin="50,0,0,0" Width="300" Height="200"/>
-            </StackPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="100"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*"></ColumnDefinition>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                    <ColumnDefinition Width="4*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Dithered Result" FontSize="50" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="Plotted Result" FontSize="50"  HorizontalAlignment="Center"/>
+                <Image Grid.Row="1" Grid.Column="0" x:Name="ditheredImageResult"  HorizontalAlignment="Center" Width="600" Height="600" />
+                <Canvas Grid.Row="1" Grid.Column="2" x:Name="lineResult"  HorizontalAlignment="Center" Width="600" Height="600" RenderTransformOrigin="0,0" >
+                    <Canvas.RenderTransform>
+                        <CompositeTransform ScaleX="4" ScaleY="4"/>
+                    </Canvas.RenderTransform>
+                </Canvas>
+            </Grid>
         </StackPanel>
     </Grid>
 </Page>
