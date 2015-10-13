@@ -173,43 +173,46 @@ namespace PlotMyFace
             var canvasChildren = lineResult.Children;
             canvasChildren.Clear();
 
-            var actualLocation = _startLocation;
-            int index = 0;
-            var color = Colors.Purple;
-            var stroke = new SolidColorBrush(color);
-            int dropCount = 0;
-
-            foreach (var destination in _AddEndLocation(bestSolutionSoFar))
+            if (bestSolutionSoFar.Length > 0)
             {
-                var line = new Line();
-                var point = new Point();
+                var actualLocation = _startLocation;
+                int index = 0;
+                var color = Colors.Purple;
+                var stroke = new SolidColorBrush(color);
+                int dropCount = 0;
 
-                line.Stroke = stroke;
-                line.X1 = actualLocation.X;
-                line.Y1 = actualLocation.Y;
-                line.X2 = destination.X;
-                line.Y2 = destination.Y;
-
-                point.X = destination.X;
-                point.Y = destination.Y;
-
-                uint lineLength = LineLength(line);
-                if (lineLength > 5)
+                foreach (var destination in _AddEndLocation(bestSolutionSoFar))
                 {
-                    Debug.WriteLine("Dropping line length: " + lineLength);
-                    dropCount++;
-                }
-                else
-                {
-                    canvasChildren.Add(line);
+                    var line = new Line();
+                    var point = new Point();
+
+                    line.Stroke = stroke;
+                    line.X1 = actualLocation.X;
+                    line.Y1 = actualLocation.Y;
+                    line.X2 = destination.X;
+                    line.Y2 = destination.Y;
+
+                    point.X = destination.X;
+                    point.Y = destination.Y;
+
+                    uint lineLength = LineLength(line);
+                    if (lineLength > 5)
+                    {
+                        Debug.WriteLine("Dropping line length: " + lineLength);
+                        dropCount++;
+                    }
+                    else
+                    {
+                        canvasChildren.Add(line);
+                    }
+
+                    actualLocation = destination;
+                    index++;
                 }
 
-                actualLocation = destination;
-                index++;
+                Debug.WriteLine("Total long dropped: " + dropCount);
+                Debug.WriteLine("Segments added: " + canvasChildren.Count);
             }
-
-            Debug.WriteLine("Total long dropped: " + dropCount);
-            Debug.WriteLine("Segments added: " + canvasChildren.Count);
         }
         private IEnumerable<Location> _AddEndLocation(Location[] middleLocations)
         {
@@ -252,10 +255,6 @@ namespace PlotMyFace
             });
         }
 
-        private void Stop_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
-        {
-        }
-
         private async void button_Click(object sender, RoutedEventArgs e)
         {
             _timer.Stop();
@@ -272,47 +271,47 @@ namespace PlotMyFace
 
                 _locations = Linearization.GetLocationsFromDither(ditherResult.pixels, (int)ditherResult.width, (int)ditherResult.height);
 
-                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                if (_locations.Count > 0)
                 {
-                    MemoryStream ms = new MemoryStream(ditherResult.pixels);
 
-                    var expand = new byte[ditherResult.width * ditherResult.height * 4];
-                    for (int i = 0; i < ditherResult.pixels.Length; i++)
+
+                    await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
                     {
-                        expand[i * 4 + 0] = ditherResult.pixels[i];
-                        expand[i * 4 + 1] = ditherResult.pixels[i];
-                        expand[i * 4 + 2] = ditherResult.pixels[i];
-                        expand[i * 4 + 3] = 255;
-                    }
+                        MemoryStream ms = new MemoryStream(ditherResult.pixels);
 
-                    WriteableBitmap bi = new WriteableBitmap((int)ditherResult.width, (int)ditherResult.height);
-                    expand.CopyTo(bi.PixelBuffer);
-                    ditheredImageResult.Source = bi;
-                });
+                        var expand = new byte[ditherResult.width * ditherResult.height * 4];
+                        for (int i = 0; i < ditherResult.pixels.Length; i++)
+                        {
+                            expand[i * 4 + 0] = ditherResult.pixels[i];
+                            expand[i * 4 + 1] = ditherResult.pixels[i];
+                            expand[i * 4 + 2] = ditherResult.pixels[i];
+                            expand[i * 4 + 3] = 255;
+                        }
 
-                var start = DateTime.Now;
+                        WriteableBitmap bi = new WriteableBitmap((int)ditherResult.width, (int)ditherResult.height);
+                        expand.CopyTo(bi.PixelBuffer);
+                        ditheredImageResult.Source = bi;
+                    });
 
-                _algorithm = new TravellingSalesmanAlgorithm(_startLocation, _locations.ToArray(), _populationCount);
-                _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
-                Debug.WriteLine("TSP took: " + (DateTime.Now - start).TotalSeconds.ToString() + " seconds");
+                    var start = DateTime.Now;
 
-                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
-                {
-                    draw.IsEnabled = true;
-                });
+                    _algorithm = new TravellingSalesmanAlgorithm(_startLocation, _locations.ToArray(), _populationCount);
+                    _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
+                    Debug.WriteLine("TSP took: " + (DateTime.Now - start).TotalSeconds.ToString() + " seconds");
 
-                /*
+                    await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                    {
+                        draw.IsEnabled = true;
+                    });
+                }
+
                 await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
                 {
                     var startLines = DateTime.Now;
                     _DrawLines();
                     Debug.WriteLine("LineDraw " + (DateTime.Now - startLines).TotalSeconds.ToString() + " seconds");
                 });
-                */
             });
-
-            //_currentGeneration = 0;
-            //_timer.Start();
         }
 
         private void _timer_Tick(object sender, object e)
