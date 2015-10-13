@@ -16,7 +16,7 @@ namespace PlotMyFace
 
     internal class Dither
     {
-        const byte kBWThreshold = 0;
+        const int kBWThreshold = -250;
         static public float[] errorTable;
 
         internal static byte getLuminance(byte r, byte g, byte b)

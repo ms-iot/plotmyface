@@ -120,15 +120,9 @@ namespace PlotMyFace
             var color = Colors.Purple;
             var stroke = new SolidColorBrush(color);
             int dropCount = 0;
-            Polygon poly = new Polygon();
-            poly.Stroke = stroke;
-            poly.StrokeThickness = 1;
 
             foreach (var destination in _AddEndLocation(bestSolutionSoFar))
             {
-                int red = 255 * index / bestSolutionSoFar.Length;
-                int blue = 255 - red;
-
                 var line = new Line();
                 var point = new Point();
 
@@ -142,25 +136,22 @@ namespace PlotMyFace
                 point.Y = destination.Y;
 
                 uint lineLength = LineLength(line);
-                if (lineLength > 10)
+                if (lineLength > 5)
                 {
                     Debug.WriteLine("Dropping line length: " + lineLength);
                     dropCount++;
                 }
                 else
                 {
-                    poly.Points.Add(point);
-                    //canvasChildren.Add(line);
+                    canvasChildren.Add(line);
                 }
 
                 actualLocation = destination;
                 index++;
             }
 
-            canvasChildren.Add(poly);
-
             Debug.WriteLine("Total long dropped: " + dropCount);
-            Debug.WriteLine("Poly added: " + canvasChildren.Count);
+            Debug.WriteLine("Segments added: " + canvasChildren.Count);
 
         }
         private IEnumerable<Location> _AddEndLocation(Location[] middleLocations)
