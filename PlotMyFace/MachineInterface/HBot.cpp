@@ -3,7 +3,7 @@
 namespace MachineInterface
 {
 
-	const int kHomeOffset = 5;
+	const int kHomeBackoff = 5;
 
 	HBot::HBot(
 		int aStepPin, int aDirPin, int aEnPin,
@@ -68,22 +68,21 @@ namespace MachineInterface
 
 	void HBot::home()
 	{
-		if (digitalRead(_xHome) == 0 &&
-			digitalRead(_yHome) == 0)
+		if (atXStop() &&
+			atYStop())
 		{
-			// Home already
-			_aStepper.setCurrentPosition(0);
-			_bStepper.setCurrentPosition(0);
-			_state = BotState_Idle;
+			// At Physical stops, so backoff.
+			setMaxValues();
+			move(kHomeBackoff, kHomeBackoff);
 		}
 		else
 		{
 
-			_aStepper.setAcceleration(500);
-			_bStepper.setAcceleration(500);
+			_aStepper.setAcceleration(800);
+			_bStepper.setAcceleration(800);
 			_aStepper.setMaxSpeed(800);
 			_bStepper.setMaxSpeed(800);
-			if (digitalRead(_xHome) == 1)
+			if (!atXStop())
 			{
 				moveRelative(-_widthMM, 0);
 				_state = BotState_HomingX;
@@ -128,26 +127,46 @@ namespace MachineInterface
 	bool HBot::run()
 	{
 		bool running = false;
+		int64 xPos = currentXPosMM();
+		int64 yPos = currentYPosMM();
+
 		if (_state != BotState_Idle)
 		{
 			if (_state == BotState_HomingX)
 			{
-				if (digitalRead(_xHome) == 0)
+				if (atXStop())
 				{
 					_aStepper.setCurrentPosition(0);
 					_bStepper.setCurrentPosition(0);
-					moveRelative(kHomeOffset, -_heightMM);
+					move(kHomeBackoff, 0);
+					_state = BotState_HomingXBackoff;
+				}
+			}
+			else if (_state == BotState_HomingXBackoff)
+			{
+				if (xPos >= kHomeBackoff)
+				{
+					_aStepper.setCurrentPosition(0);
+					_bStepper.setCurrentPosition(0);
+					move(0, -_heightMM);
 					_state = BotState_HomingY;
 				}
 			}
 			else if (_state == BotState_HomingY)
 			{
-				if (digitalRead(_yHome) == 0)
+				if (atYStop())
 				{
-					_state = BotState_Idle;
-					setMaxValues();
 					_aStepper.setCurrentPosition(0);
 					_bStepper.setCurrentPosition(0);
+					move(kHomeBackoff, kHomeBackoff);
+					_state = BotState_HomingYBackoff;
+				}
+			}
+			else if (_state == BotState_HomingYBackoff)
+			{
+				if (yPos >= kHomeBackoff)
+				{
+					setMaxValues();
 				}
 			}
 

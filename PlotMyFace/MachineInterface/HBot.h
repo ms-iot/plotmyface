@@ -9,7 +9,9 @@ namespace MachineInterface
 		{
 			BotState_Idle = 0,
 			BotState_HomingX,
+			BotState_HomingXBackoff,
 			BotState_HomingY,
+			BotState_HomingYBackoff,
 			BotState_Moving
 		} BotState;
 		int _aStepPin;
@@ -45,6 +47,22 @@ namespace MachineInterface
 
 		void enable();
 		void disable();
+
+		int64 currentXPosMM()	// in mm
+		{
+			long aSteps = _aStepper.currentPosition();
+			long bSteps = _bStepper.currentPosition();
+
+			return (aSteps - bSteps) / 2 / _stepsPerMM;
+		}
+
+		int64 currentYPosMM()
+		{
+			long aSteps = _aStepper.currentPosition();
+			long bSteps = _bStepper.currentPosition();
+
+			return (aSteps + bSteps) / 2 / _stepsPerMM;
+		}
 
 		bool atXStop()
 		{
