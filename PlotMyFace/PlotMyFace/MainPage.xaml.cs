@@ -18,18 +18,53 @@ using Windows.UI.Xaml.Shapes;
 using MachineInterface;
 using Windows.Media.MediaProperties;
 using Windows.UI.Xaml;
+using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.UI.Xaml;
+using System.Numerics;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
 namespace PlotMyFace
 {
+
+    internal class TSPSegment
+    {
+        public Vector2 start;
+        public Vector2 end;
+        public enum LineType
+        {
+            Jump,
+            Draw
+        };
+
+        public LineType type;
+        public bool wasPlotted;
+
+        public TSPSegment()
+        {
+            wasPlotted = false;
+        }
+
+        public uint LineLength()
+        {
+            double xSeg = (end.X - start.X);
+            double ySeg = (end.Y - start.Y);
+            return (uint)Math.Abs((Math.Sqrt(xSeg * xSeg + ySeg * ySeg)));
+        }
+
+    };
+
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        private const int kJumpThreshold = 5;
+        private const int plottingOffsetX = 50;
+        private const int plottingOffsetY = 50;
         private const int generationTimeout = 500; // ms
-        private const int maxGenerations = 100;
+        private const int renderTimeout = 1000; // ms
+        private const int maxGenerations = 5;
         private const int _populationCount = 114;
         Location _startLocation = new Location(50, 50);
         TravellingSalesmanAlgorithm _algorithm;
@@ -52,16 +87,24 @@ namespace PlotMyFace
         const int HBotBed_Width = 350; // mm
         const int HBotBed_Height = 350; // mm
 
+        const float CanvasToRealityScale = 4.0f;
+
         const int HBotBed_SpindleDiameter = 13; // mm Spindle Diameter
         const int HBotBed_StepsPerRev = 200 * 16; // full steps per rev, 16 microsteps
         const int HBotBed_StepsPerMM = (int)(HBotBed_StepsPerRev / (Math.PI * HBotBed_SpindleDiameter));  // Steps per MM
 
         private HBot _bot = null;
 
-        private DispatcherTimer _timer = null;
         private MediaCapture _mediaCaptureMgr;
         private StorageFile _photoStorageFile;
         private int _currentGeneration = 0;
+
+        private uint cameraWidth = 0;
+        private uint cameraHeight = 0;
+
+        private List<TSPSegment> _tspSegments = new List<TSPSegment>();
+
+        private DispatcherTimer _timer = null;
 
         public MainPage()
         {
@@ -74,21 +117,13 @@ namespace PlotMyFace
             base.OnNavigatedTo(e);
 
             draw.IsEnabled = false;
+
             _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromMilliseconds(generationTimeout);
+            _timer.Interval = TimeSpan.FromMilliseconds(renderTimeout);
             _timer.Tick += _timer_Tick;
 
             _mediaCaptureMgr = new Windows.Media.Capture.MediaCapture();
             await _mediaCaptureMgr.InitializeAsync(new MediaCaptureInitializationSettings { StreamingCaptureMode = StreamingCaptureMode.Video });
-
-            if (_mediaCaptureMgr.MediaCaptureSettings.VideoDeviceId != "" && _mediaCaptureMgr.MediaCaptureSettings.AudioDeviceId != "")
-            {
-                _mediaCaptureMgr.Failed += new Windows.Media.Capture.MediaCaptureFailedEventHandler(CameraFailedHandler);
-            }
-            else
-            {
-                Debug.WriteLine("No VideoDevice/AudioDevice Found");
-            }
 
             VideoEncodingProperties smallestMedia = null;
 
@@ -106,7 +141,12 @@ namespace PlotMyFace
                 }
             }
 
+            cameraWidth = smallestMedia.Width;
+            cameraHeight = smallestMedia.Height;
             await _mediaCaptureMgr.VideoDeviceController.SetMediaStreamPropertiesAsync(MediaStreamType.VideoPreview, smallestMedia);
+
+            CapturePreview.Width = cameraWidth;
+            CapturePreview.Height = cameraHeight;
 
             // for testing
             /*
@@ -142,78 +182,69 @@ namespace PlotMyFace
             });
         }
 
-        public async void CameraFailedHandler(MediaCapture currentCaptureObject, MediaCaptureFailedEventArgs currentFailure)
+        private void _timer_Tick(object sender, object e)
         {
-            try
+            lineResult.Invalidate();
+        }
+
+        void canvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            if (_tspSegments.Count > 0)
             {
-                // Notify the user
-                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                foreach (var line in _tspSegments)
                 {
-                    Debug.WriteLine("Fatal error" + currentFailure.Message);
-                });
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.Message);
+                    if (line.wasPlotted)
+                    {
+                        args.DrawingSession.DrawLine(line.start * CanvasToRealityScale, line.end * CanvasToRealityScale, Colors.DarkBlue);
+                    }
+                    else if (line.type == TSPSegment.LineType.Jump)
+                    {
+                        args.DrawingSession.DrawLine(line.start * CanvasToRealityScale, line.end * CanvasToRealityScale, Colors.YellowGreen);
+                    }
+                    else if (line.type == TSPSegment.LineType.Draw)
+                    {
+                        args.DrawingSession.DrawLine(line.start * CanvasToRealityScale, line.end * CanvasToRealityScale, Colors.MediumPurple);
+                    }
+                }
             }
         }
 
-        uint LineLength(Line line)
-        {
-            double xSeg = (line.X2 - line.X1);
-            double ySeg = (line.Y2 - line.Y1);
-            return (uint)Math.Abs((Math.Sqrt(xSeg * xSeg + ySeg * ySeg)));
-        }
-
-        private void _DrawLines()
+        private void generateLines()
         {
             Location[] bestSolutionSoFar = _bestSolutionSoFar;
             Location.GetTotalDistance(_startLocation, bestSolutionSoFar);
 
-            var canvasChildren = lineResult.Children;
-            canvasChildren.Clear();
+            _tspSegments.Clear();
 
             if (bestSolutionSoFar.Length > 0)
             {
                 var actualLocation = _startLocation;
                 int index = 0;
-                var color = Colors.Purple;
-                var stroke = new SolidColorBrush(color);
                 int dropCount = 0;
 
                 foreach (var destination in _AddEndLocation(bestSolutionSoFar))
                 {
-                    var line = new Line();
-                    var point = new Point();
-
-                    line.Stroke = stroke;
-                    line.X1 = actualLocation.X;
-                    line.Y1 = actualLocation.Y;
-                    line.X2 = destination.X;
-                    line.Y2 = destination.Y;
-
-                    point.X = destination.X;
-                    point.Y = destination.Y;
-
-                    uint lineLength = LineLength(line);
-                    if (lineLength > 5)
+                    var line = new TSPSegment() { start = new Vector2(actualLocation.X, actualLocation.Y), end = new Vector2(destination.X, destination.Y) };
+                    if (line.LineLength() > kJumpThreshold)
                     {
-                        Debug.WriteLine("Dropping line length: " + lineLength);
-                        dropCount++;
+                        line.type = TSPSegment.LineType.Jump;
                     }
                     else
                     {
-                        canvasChildren.Add(line);
+                        line.type = TSPSegment.LineType.Draw;
                     }
+
+                    _tspSegments.Add(line);
 
                     actualLocation = destination;
                     index++;
                 }
 
                 Debug.WriteLine("Total long dropped: " + dropCount);
-                Debug.WriteLine("Segments added: " + canvasChildren.Count);
+                Debug.WriteLine("Segments added: " + _tspSegments.Count);
             }
         }
+
         private IEnumerable<Location> _AddEndLocation(Location[] middleLocations)
         {
             foreach (var location in middleLocations)
@@ -224,46 +255,69 @@ namespace PlotMyFace
 
         private async void draw_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
+            capture.IsEnabled = false;
             draw.IsEnabled = false;
+            if (_bestSolutionSoFar.Length == 0)
+            {
+                capture.IsEnabled = true;
+                return;
+            }
+
+            // Reset the plotted bit on segments in case someone draws the same image again.
+            foreach (var line in _tspSegments)
+            {
+                line.wasPlotted = false;
+            }
+
+            _timer.Start();
+
             await Task.Run(async () =>
             {
-                Location[] bestSolutionSoFar = _bestSolutionSoFar;
-                Location.GetTotalDistance(_startLocation, bestSolutionSoFar);
-
-                var actualLocation = _startLocation;
-                int index = 0;
                 var start = DateTime.Now;
-                foreach (var destination in _AddEndLocation(bestSolutionSoFar))
+
+                _bot.move((int)(_tspSegments[0].start.X + plottingOffsetX), (int)(_tspSegments[0].start.Y + plottingOffsetY));
+
+                _bot.enable();
+                while (_bot.run())
+                    ;
+                _bot.disable();
+
+                foreach (var line in _tspSegments)
                 {
-                    _bot.move(destination.X + 20, destination.Y + 20);
+                    _bot.move((int)(line.end.X + plottingOffsetX), (int)(line.end.Y + plottingOffsetY));
+                    line.wasPlotted = true;
 
                     _bot.enable();
                     while (_bot.run())
                         ;
                     _bot.disable();
 
-                    actualLocation = destination;
-                    index++;
                 }
 
                 Debug.WriteLine("Render took: " + (DateTime.Now - start).TotalSeconds.ToString() + " seconds");
 
+                _bot.home();
+                _bot.enable();
+                while (_bot.run())
+                    ;
+                _bot.disable();
+
                 await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
                 {
                     draw.IsEnabled = true;
+                    capture.IsEnabled = true;
+                    _timer.Stop();
                 });
             });
         }
 
-        private async void button_Click(object sender, RoutedEventArgs e)
+        private async void capture_Click(object sender, RoutedEventArgs e)
         {
-            _timer.Stop();
-
             _photoStorageFile = await Windows.Storage.ApplicationData.Current.LocalFolder.CreateFileAsync(PHOTO_FILE_NAME, Windows.Storage.CreationCollisionOption.GenerateUniqueName);
 
             ImageEncodingProperties imageProperties = ImageEncodingProperties.CreateJpeg();
-            imageProperties.Height = 150;
-            imageProperties.Width = 150;
+            imageProperties.Width = cameraWidth;
+            imageProperties.Height = cameraHeight;
 
             await _mediaCaptureMgr.CapturePhotoToStorageFileAsync(imageProperties, _photoStorageFile);
 
@@ -275,8 +329,6 @@ namespace PlotMyFace
 
                 if (_locations.Count > 0)
                 {
-
-
                     await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
                     {
                         MemoryStream ms = new MemoryStream(ditherResult.pixels);
@@ -298,6 +350,15 @@ namespace PlotMyFace
                     var start = DateTime.Now;
 
                     _algorithm = new TravellingSalesmanAlgorithm(_startLocation, _locations.ToArray(), _populationCount);
+                    _algorithm.MustMutateFailedCrossovers = true;
+                    _algorithm.MustDoCrossovers = true;
+
+
+                    while (_currentGeneration++ < maxGenerations)
+                    {
+                        _algorithm.Reproduce();
+                    }
+
                     _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
                     Debug.WriteLine("TSP took: " + (DateTime.Now - start).TotalSeconds.ToString() + " seconds");
 
@@ -310,26 +371,11 @@ namespace PlotMyFace
                 await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
                 {
                     var startLines = DateTime.Now;
-                    _DrawLines();
+                    generateLines();
+                    lineResult.Invalidate();
                     Debug.WriteLine("LineDraw " + (DateTime.Now - startLines).TotalSeconds.ToString() + " seconds");
                 });
             });
-        }
-
-        private void _timer_Tick(object sender, object e)
-        {
-            if (_currentGeneration++ > maxGenerations)
-            {
-                _timer.Stop();
-            }
-            else if (_algorithm != null)
-            {
-                _algorithm.MustMutateFailedCrossovers = true;
-                _algorithm.MustDoCrossovers = true;
-                _algorithm.Reproduce();
-                _bestSolutionSoFar = _algorithm.GetBestSolutionSoFar().ToArray();
-                _DrawLines();
-            }
         }
     }
 }
