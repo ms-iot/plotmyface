@@ -60,10 +60,10 @@ namespace MachineInterface
 
 	void HBot::setMaxValues()
 	{
-		_aStepper.setAcceleration(90000);
-		_bStepper.setAcceleration(90000);
-		_aStepper.setMaxSpeed(100000);
-		_bStepper.setMaxSpeed(100000);
+		_aStepper.setAcceleration(70000);
+		_bStepper.setAcceleration(70000);
+		_aStepper.setMaxSpeed(80000);
+		_bStepper.setMaxSpeed(80000);
 	}
 
 	void HBot::home()
