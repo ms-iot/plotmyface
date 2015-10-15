@@ -122,6 +122,21 @@ namespace PlotMyFace
             _timer.Interval = TimeSpan.FromMilliseconds(renderTimeout);
             _timer.Tick += _timer_Tick;
 
+            await Task.Run(() =>
+            {
+                _bot = new HBot(
+                    HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
+                    HBotPin_BStep, HBotPin_BDir, HBotPin_BEn,
+                    HBotPin_XHome, HBotPin_YHome);
+                _bot.setInfo(HBotBed_Width, HBotBed_Height, HBotBed_StepsPerMM);
+
+                _bot.enable();
+                _bot.home();
+                while (_bot.run())
+                    ;
+                _bot.disable();
+            });
+
             _mediaCaptureMgr = new Windows.Media.Capture.MediaCapture();
             await _mediaCaptureMgr.InitializeAsync(new MediaCaptureInitializationSettings { StreamingCaptureMode = StreamingCaptureMode.Video });
 
@@ -148,38 +163,9 @@ namespace PlotMyFace
             CapturePreview.Width = cameraWidth;
             CapturePreview.Height = cameraHeight;
 
-            // for testing
-            /*
-            if (false)
-            {
-                // use a file
-                FileOpenPicker openPicker = new FileOpenPicker();
-                openPicker.ViewMode = PickerViewMode.Thumbnail;
-                openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
-                openPicker.FileTypeFilter.Add(".jpg");
-                openPicker.FileTypeFilter.Add(".jpeg");
-                openPicker.FileTypeFilter.Add(".png");
-                _photoStorageFile = await openPicker.PickSingleFileAsync();
-            }
-            */
-
             CapturePreview.Source = _mediaCaptureMgr;
             await _mediaCaptureMgr.StartPreviewAsync();
 
-            await Task.Run(() =>
-            {
-                _bot = new HBot(
-                    HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
-                    HBotPin_BStep, HBotPin_BDir, HBotPin_BEn,
-                    HBotPin_XHome, HBotPin_YHome);
-                _bot.setInfo(HBotBed_Width, HBotBed_Height, HBotBed_StepsPerMM);
-
-                _bot.enable();
-                _bot.home();
-                while (_bot.run())
-                    ;
-                _bot.disable();
-            });
         }
 
         private void _timer_Tick(object sender, object e)
@@ -240,7 +226,7 @@ namespace PlotMyFace
                     index++;
                 }
 
-                Debug.WriteLine("Total long dropped: " + dropCount);
+                Debug.WriteLine("Total long jumps: " + dropCount);
                 Debug.WriteLine("Segments added: " + _tspSegments.Count);
             }
         }

@@ -32,11 +32,6 @@
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Dithered Result" FontSize="50" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="Plotted Result" FontSize="50"  HorizontalAlignment="Center"/>
                 <Image Grid.Row="1" Grid.Column="0" x:Name="ditheredImageResult"  HorizontalAlignment="Center" VerticalAlignment="Top" Width="600" Height="600" />
-                <!-- Canvas Grid.Row="1" Grid.Column="2" x:Name="lineResult"  HorizontalAlignment="Center" Width="600" Height="600" RenderTransformOrigin="0,0" >
-                    <Canvas.RenderTransform>
-                        <CompositeTransform ScaleX="4" ScaleY="4"/>
-                    </Canvas.RenderTransform>
-                </ -->
                 <canvas:CanvasControl Grid.Row="1" Grid.Column="2" x:Name="lineResult"  HorizontalAlignment="Center" Width="600" Height="600" Draw="canvasControl_Draw" ClearColor="White" />
             </Grid>
         </StackPanel>
