@@ -8,13 +8,39 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="AccelStepper.cpp" />
     <ClCompile Include="HBot.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)\Source\LiquidCrystal.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)\Source\Print.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)\Source\Stepper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)\Source\Stream.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)\Source\WString.cpp" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="AccelStepper\AccelStepper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="AccelStepper.h" />
     <ClInclude Include="HBot.h" />
+    <ClInclude Include="AccelStepper\AccelStepper.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
