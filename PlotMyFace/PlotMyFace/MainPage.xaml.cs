@@ -84,16 +84,22 @@ namespace PlotMyFace
         const int HBotPin_XHome = 38;   //GPIO_19;
         const int HBotPin_YHome = 35;   //GPIO_20;
 
+        const int HBotPin_PenServo = 3;    // PWM 3
+
         const int HBotBed_Width = 350; // mm
         const int HBotBed_Height = 350; // mm
 
         const float CanvasToRealityScale = 4.0f;
+
+        const int kPenMoveTimeout = 500;
+
 
         const int HBotBed_SpindleDiameter = 13; // mm Spindle Diameter
         const int HBotBed_StepsPerRev = 200 * 16; // full steps per rev, 16 microsteps
         const int HBotBed_StepsPerMM = (int)(HBotBed_StepsPerRev / (Math.PI * HBotBed_SpindleDiameter));  // Steps per MM
 
         private HBot _bot = null;
+        private PenActuator _pen = null;
 
         private MediaCapture _mediaCaptureMgr;
         private StorageFile _photoStorageFile;
@@ -122,7 +128,7 @@ namespace PlotMyFace
             _timer.Interval = TimeSpan.FromMilliseconds(renderTimeout);
             _timer.Tick += _timer_Tick;
 
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 _bot = new HBot(
                     HBotPin_AStep, HBotPin_ADir, HBotPin_AEn,
@@ -130,10 +136,16 @@ namespace PlotMyFace
                     HBotPin_XHome, HBotPin_YHome);
                 _bot.setInfo(HBotBed_Width, HBotBed_Height, HBotBed_StepsPerMM);
 
+                _pen = new PenActuator(HBotPin_PenServo);
+
+                _pen.raise();
+                await Task.Delay(kPenMoveTimeout);
+
                 _bot.enable();
                 _bot.home();
                 while (_bot.run())
                     ;
+
                 _bot.disable();
             });
 
@@ -260,6 +272,8 @@ namespace PlotMyFace
             await Task.Run(async () =>
             {
                 var start = DateTime.Now;
+                _pen.raise();
+                await Task.Delay(kPenMoveTimeout);
 
                 _bot.move((int)(_tspSegments[0].start.X + plottingOffsetX), (int)(_tspSegments[0].start.Y + plottingOffsetY));
 
@@ -268,8 +282,31 @@ namespace PlotMyFace
                     ;
                 _bot.disable();
 
+                TSPSegment.LineType currentType = _tspSegments[0].type;
+                if (currentType == TSPSegment.LineType.Draw)
+                {
+                    _pen.lower();
+                    await Task.Delay(kPenMoveTimeout);
+                }
+
                 foreach (var line in _tspSegments)
                 {
+                    if (line.type != currentType)
+                    {
+                        if (line.type == TSPSegment.LineType.Draw)
+                        {
+                            _pen.lower();
+                            await Task.Delay(kPenMoveTimeout);
+                        }
+                        else
+                        {
+                            _pen.raise();
+                            await Task.Delay(kPenMoveTimeout);
+                        }
+
+                        currentType = line.type;
+                    }
+
                     _bot.move((int)(line.end.X + plottingOffsetX), (int)(line.end.Y + plottingOffsetY));
                     line.wasPlotted = true;
 

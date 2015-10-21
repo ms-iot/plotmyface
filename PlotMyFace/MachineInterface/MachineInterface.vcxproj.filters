@@ -14,33 +14,15 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)\Source\Stepper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)\Source\Stream.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)\Source\WString.cpp" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
-    <ClCompile Include="@(LightningSources)" />
     <ClCompile Include="AccelStepper\AccelStepper.cpp" />
+    <ClCompile Include="@(LightningSources)" />
+    <ClCompile Include="PenActuator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="HBot.h" />
     <ClInclude Include="AccelStepper\AccelStepper.h" />
+    <ClInclude Include="PenActuator.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
