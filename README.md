@@ -6,7 +6,7 @@ The key elements of this project are:
 * Using camera to capture an image, with a live preview
 * Using Xaml UI to display intermediate stages of the plot
 * Dither the input image to generate a series of dots
-* Use a travelling salesperson algorithm to connect the the dots using line segments
+* Use a travelling salesperson algorithm to connect the dots using line segments
 * Use the line segements to drive an H-Bot style carteisian plotter
 * Drive steppers using the Arduino library [AccelStepper](http://www.airspayce.com/mikem/arduino/AccelStepper/) written by Mike McCauley.
 
@@ -26,7 +26,7 @@ The key elements of this project are:
 * [Travelling Salesman Algorithm](http://www.codeproject.com/Articles/792887/Travelling-Salesman-Genetic-Algorithm)
 
 # Explaination of the hardware build
-The hardware for this plotter is configured as an H-Bot cartesian frame. An HBot uses a single long toothed belt and two stepper motors to drive the X and Y axes. The configuration has the benefit that both of the the stepper motors are mounted to the frame, which means the central carriage is very light and can move exceptionally fast. The downside of the HBot it is not balanced - if the Y axis is not extremely rigid, there can be racking. The simplicity of this design makes it a quick and easy build.
+The hardware for this plotter is configured as an H-Bot cartesian frame. An HBot uses a single long toothed belt and two stepper motors to drive the X and Y axes. The configuration has the benefit that both of the stepper motors are mounted to the frame, which means the central carriage is very light and can move exceptionally fast. The downside of the HBot it is not balanced - if the Y axis is not extremely rigid, there can be racking. The simplicity of this design makes it a quick and easy build.
 
 
 ## Steppers
